@@ -1,6 +1,6 @@
 import { interval, of, using } from 'rxjs';
 import { ajax } from 'rxjs/ajax';
-import { startWith, take, scan, map, tap } from 'rxjs/operators';
+import { startWith, take, scan, map, tap, catchError } from 'rxjs/operators';
 import moment from 'moment';
 var async = require("async");
 
@@ -89,17 +89,28 @@ const buttonLoader = document.getElementById('data-loader');
 buttonLoader.addEventListener('click', () => {
 
     async.parallel([
-         callback => {
-             fetch('https://jsonplaceholder.typicode.com/posts')
-            .then(response => response.json())
-            .then(doc => callback(null, doc));
+         function(callback) {
+             ajax('https://jsonplaceholder.typicode.com/posts')
+            .pipe(
+                map(response => response),
+                catchError(error => {
+                    console.log('error: ', error);
+                    return of(error);
+                })
+            ).subscribe(res => callback(null, res.response));
+
         },
-         callback =>  {
-             fetch('https://jsonplaceholder.typicode.com/users')
-            .then(response => response.json())
-            .then(doc => callback(null, doc));
+        function(callback) {
+             ajax('https://jsonplaceholder.typicode.com/users')
+             .pipe(
+                map(response => response),
+                catchError(error => {
+                    console.log('error: ', error);
+                    return of(error);
+                })
+             ).subscribe(res => callback(null, res.response));
         }
-    ], function(err, results) {
+    ], (err, results) =>  {
         console.log(results);
     });
 
