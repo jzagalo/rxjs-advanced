@@ -88,7 +88,18 @@ $countDownSession.subscribe(console.log);
 const buttonLoader = document.getElementById('data-loader');
 buttonLoader.addEventListener('click', () => {
 
-    async.parallel([
+    Promise.all([
+         fetch('https://jsonplaceholder.typicode.com/posts')
+        .then(res => res.json())
+        .then(response => response),
+
+         fetch('https://jsonplaceholder.typicode.com/users')
+        .then(res => res.json())
+        .then(response => response)
+
+    ]).then(result => console.log(result));
+
+/*     async.parallel([
          function(callback) {
              ajax('https://jsonplaceholder.typicode.com/posts')
             .pipe(
@@ -112,7 +123,7 @@ buttonLoader.addEventListener('click', () => {
         }
     ], (err, results) =>  {
         console.log(results);
-    });
+    }); */
 
     /* async.parallel([
          (callback) =>  fetch('https://jsonplaceholder.typicode.com/posts')
