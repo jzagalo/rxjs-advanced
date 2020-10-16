@@ -1,4 +1,4 @@
-import { AsyncSubject, from, interval, Observable, of, range, Subject, using } from 'rxjs';
+import { AsyncSubject, BehaviorSubject, from, interval, Observable, of, range, Subject, using } from 'rxjs';
 import { ajax } from 'rxjs/ajax';
 import { startWith, take, scan, map, tap, catchError, timestamp, 
         concatMap, mergeMap, bufferCount, switchMap, delay } from 'rxjs/operators';
@@ -183,7 +183,7 @@ function getProducts(url){
     let subject;
     return Observable.create((observer) => {
         if(!subject){
-            subject = new AsyncSubject();
+            subject = new BehaviorSubject("Waiting for Content");
             ajax('https://jsonplaceholder.typicode.com/users')
                 .subscribe(subject)
         }
@@ -194,14 +194,14 @@ function getProducts(url){
 
 var products = getProducts('/products');
 products.subscribe({
-    next: (result) => console.log('Result 1: ', result.response),
+    next: (result) => console.log('Result 1: ', result.response? result.response : result),
     error: (error) => console('ERROR ', error),
     complete: () => console.log('Completed')
 });
 
 setTimeout(() => {
     products.subscribe({
-        next: (result) => console.log('Result 2: ', result.response),
+        next: (result) => console.log('Result 2: ', result.response? result.response : result),
         error: (error) => console('ERROR ', error),
         complete: () => console.log('Completed')
     });
