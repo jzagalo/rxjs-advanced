@@ -1,15 +1,24 @@
-import { interval, of, using } from 'rxjs';
+import { AsyncSubject, from, interval, Observable, of, range, Subject, using } from 'rxjs';
 import { ajax } from 'rxjs/ajax';
-import { startWith, take, scan, map, tap, catchError } from 'rxjs/operators';
+import { startWith, take, scan, map, tap, catchError, timestamp, 
+        concatMap, mergeMap, bufferCount, switchMap, delay } from 'rxjs/operators';
 import moment from 'moment';
-var async = require("async");
+import { emit } from 'pouchdb-browser';
+let async = require("async");
+let PouchDB = require('pouchdb-browser');
+let pouchdb = PouchDB.default.defaults();
+let txDb = new pouchdb('transactions');
+txDb.info().then(info => console.log(info));
+/* txDb.on('error', function (err) {
+    console.log(err);
+    debugger; }); */
 
 /*
  * Any code samples you want to play with can go in this file.
  * Updates will trigger a live reload on http://localhost:1234/
  * after running npm start.
  */
-of('Hello', 'RxJS').subscribe(console.log);
+/* of('Hello', 'RxJS').subscribe(console.log);
 
 class DisposableReasource{
     constructor(value){
@@ -83,58 +92,118 @@ const $countDownSession = using(
     )
 );
 
-$countDownSession.subscribe(console.log);
+$countDownSession.subscribe(console.log); */
 
-const buttonLoader = document.getElementById('data-loader');
-buttonLoader.addEventListener('click', () => {
+/* class Transaction {
+    constructor(name, type, amount, from, to = null){
+        this.name = name;
+        this.type = type;
+        this.from = from;
+        this.to = to;
+        this.amount = amount;
+    }
+}
 
-    Promise.all([
-         fetch('https://jsonplaceholder.typicode.com/posts')
-        .then(res => res.json())
-        .then(response => response),
+function getTransactionsArray(){
+    return [
+        new Transaction('Brendan Eich', 'withdraw', 500, 'checking'),
+        new Transaction('George Lucas', 'deposit', 800, 'savings'),
+        new Transaction('Emmet Brown', 'transfer', 2000, 'checking', 'savings'),
+        new Transaction('Bjarne Stroustrup', 'transfer', 1000, 'savings', 'CD'),
+    ];
+}
 
-         fetch('https://jsonplaceholder.typicode.com/users')
-        .then(res => res.json())
-        .then(response => response)
+const writeTx$ = tx => of(tx).pipe(
+    bufferCount(20),
+    timestamp(),    
+    map(obj => Object.assign({}, obj.value, { date: obj.timestamp })),
+    tap(tx => console.log(`Processing transaction for: ${tx.name}`)),
+    mergeMap(datedTx => from(txDb.post(datedTx)))
+);
 
-    ]).then(result => console.log(result));
+const count = {
+    map: function(doc){
+        emit(doc.name);
+    },
+    reduce: '_count'
+};
 
-/*     async.parallel([
-         function(callback) {
-             ajax('https://jsonplaceholder.typicode.com/posts')
-            .pipe(
-                map(response => response),
-                catchError(error => {
-                    console.log('error: ', error);
-                    return of(error);
-                })
-            ).subscribe(res => callback(null, res.response));
 
-        },
-        function(callback) {
-             ajax('https://jsonplaceholder.typicode.com/users')
-             .pipe(
-                map(response => response),
-                catchError(error => {
-                    console.log('error: ', error);
-                    return of(error);
-                })
-             ).subscribe(res => callback(null, res.response));
-        }
-    ], (err, results) =>  {
-        console.log(results);
-    }); */
+from(getTransactionsArray()).pipe(
+    switchMap(writeTx$),
+    mergeMap(() => from(
+       txDb.query(count, {reduce: true }) 
+    ))
+).subscribe(
+        recs => console.log(`Total:  ${recs.rows[0].value}`),
+        err => console.log('Error: ' + err),
+        () => console.log('Database Populated')
+);  */
 
-    /* async.parallel([
-         (callback) =>  fetch('https://jsonplaceholder.typicode.com/posts')
-         .then(res => res.json())
-         .then(res => callback(res)),
-         (callback) =>  fetch('https://jsonplaceholder.typicode.com/users')
-         .then(res => res.json())
-         .then(res => callback(res))
-    ],
-    (err, result) => {
-        console.log("Entered");
-        console.log(result);
-    }); */
+let subject = new Subject();
+let source = interval(300)
+                .pipe(
+                    map(v => `Interval message #` + v ),
+                   // take(5)
+         );
+
+
+const onNext = x => console.log('onNext '+ x);
+const onError = e => console.log('onError '+ e);
+const onCompleted = x => console.log('onCompleted');
+
+let subscription = subject.subscribe({
+    next: onNext,
+    error: onError,
+    complete: onCompleted
 });
+
+source.subscribe(subject);
+
+//subject.next('Our message #1');
+//subject.next('Our message #2');
+
+setTimeout(() => {
+    subject.complete();
+}, 1000);
+
+let delayedRange = range(0, 5).pipe(
+    delay(1000)
+);
+
+let asyncSubject = new AsyncSubject();
+delayedRange.subscribe(asyncSubject);
+asyncSubject.subscribe({
+    next: onNext,
+    error: onError,
+    complete: onCompleted
+});
+
+function getProducts(url){
+    let subject;
+    return Observable.create((observer) => {
+        if(!subject){
+            subject = new AsyncSubject();
+            ajax('https://jsonplaceholder.typicode.com/users')
+                .subscribe(subject)
+        }
+
+        return subject.subscribe(observer);
+    });
+}
+
+var products = getProducts('/products');
+products.subscribe({
+    next: (result) => console.log('Result 1: ', result.response),
+    error: (error) => console('ERROR ', error),
+    complete: () => console.log('Completed')
+});
+
+setTimeout(() => {
+    products.subscribe({
+        next: (result) => console.log('Result 2: ', result.response),
+        error: (error) => console('ERROR ', error),
+        complete: () => console.log('Completed')
+    });
+})
+
