@@ -5,4 +5,5 @@ import { startWith, take, scan, map, tap, catchError, timestamp,
 import moment from 'moment';
 import { emit } from 'pouchdb-browser';
 import  "./starfield_1";
+//import  "./hero_1";
 
