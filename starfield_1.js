@@ -1,7 +1,8 @@
-import {range, fromEvent,  combineLatest } from 'rxjs';
-import { flatMap, map, pipe, take, toArray, startWith } from 'rxjs/operators';
+import {range, fromEvent,  combineLatest, interval } from 'rxjs';
+import { flatMap, map, pipe, take, toArray, startWith, sample } from 'rxjs/operators';
+import Enemies from './enemy_1';
 
-let canvas = document.createElement('canvas');
+export const canvas = document.createElement('canvas');
 let ctx = canvas.getContext('2d');
 document.body.appendChild(canvas);
 canvas.width = window.innerWidth;
@@ -78,8 +79,8 @@ function renderScene(actors){
 }
 
 let Game = combineLatest(
-    StarStream, spaceShip,
-    (stars, spaceship) => {
-       return { stars, spaceship };
+    StarStream, spaceShip, Enemies,
+    (stars, spaceship, enemies) => {        
+       return { stars, spaceship, enemies };
     }
-).subscribe(renderScene);
+).pipe(sample(interval(SPEED))).subscribe(renderScene);
