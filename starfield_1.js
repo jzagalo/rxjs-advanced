@@ -1,6 +1,7 @@
 import {range, fromEvent,  combineLatest, interval } from 'rxjs';
 import { flatMap, map, pipe, take, toArray, startWith, sample } from 'rxjs/operators';
-import Enemies from './enemy_1';
+import {Enemies, paintEnemies } from './enemy_1';
+
 
 export const canvas = document.createElement('canvas');
 let ctx = canvas.getContext('2d');
@@ -46,7 +47,7 @@ function paintStars(stars){
 
 let HERO_Y = canvas.height - 30;
 let mouseMove = fromEvent(canvas, "mousemove");
-let spaceShip = mouseMove.pipe(
+export let spaceShip = mouseMove.pipe(
     map((event) => {
         return  {
             x: event.clientX,
@@ -59,7 +60,7 @@ let spaceShip = mouseMove.pipe(
     })
 );
 
-function drawTriangle(x, y, width, color, direction){
+export function drawTriangle(x, y, width, color, direction){
     ctx.fillStyle = color;
     ctx.beginPath();
     ctx.moveTo(x-width, y);
@@ -76,6 +77,7 @@ function paintSpaceShip(x, y){
 function renderScene(actors){    
     paintStars(actors.stars);
     paintSpaceShip(actors.spaceship.x, actors.spaceship.y);
+    paintEnemies(actors.enemies);
 }
 
 let Game = combineLatest(
